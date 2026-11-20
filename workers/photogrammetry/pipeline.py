@@ -430,7 +430,7 @@ def main(cfg_path):
             img, tex_info = project_texture(Vw, Fu, UV, VCu, cams_t, tex_size)
             mat = trimesh.visual.material.PBRMaterial(name="Photogrammetry", baseColorTexture=Image.fromarray(img), metallicFactor=0.0, roughnessFactor=0.85)
             tm_out = trimesh.Trimesh(Vf, Fu, visual=trimesh.visual.TextureVisuals(uv=UV, material=mat), process=False)
-            tm_out.export(out_glb)
+            tm_out.export(out_glb, include_normals=True)
             textured = True
             emit(event="metrics", texture_size=tex_size, texture_photo_coverage=tex_info["photo_coverage"])
         else:

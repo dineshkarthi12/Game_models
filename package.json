@@ -2,7 +2,10 @@
   "name": "vistora-3d",
   "private": true,
   "version": "0.1.0",
-  "workspaces": ["frontend", "backend"],
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev:api": "npm run dev -w backend",
     "dev:worker": "npm run worker:dev -w backend",
@@ -12,5 +15,8 @@
     "lint": "npm run lint -w backend && npm run lint -w frontend",
     "test": "npm run test -w backend && npm run test -w frontend",
     "build": "npm run build -w backend && npm run build -w frontend"
+  },
+  "overrides": {
+    "@types/three": "0.170.0"
   }
 }

@@ -11,7 +11,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 4 | Multi-view upload | ✅ | Upload studio, quality metrics, coverage, ORB/RANSAC overlap |
 | 5 | AI provider integration | ⚠️ | Pipeline verified (BullMQ, demo, mock contracts). Real Meshy/Tripo: CONFIGURATION REQUIRED |
 | 6 | Photogrammetry | ✅ | COLMAP SfM + CPU stereo + Poisson + photo-projected texture; height within ~1% of ground truth |
-| 7 | 3D workspace | ⬜ | |
+| 7 | 3D workspace | ✅ | R3F viewer on real GLBs: modes, views, stats, textures, UVs, point cloud, cameras, compare |
 | 8 | Accuracy validation & refinement | ⬜ | |
 | 9 | Game asset pipeline | ⬜ | |
 | 10 | Professional export | ⬜ | |
@@ -122,3 +122,19 @@ Configure step photogrammetry options (matcher, known dimension); job page photo
 configure with known dimension → reconstruction (41/41 registered, 0.468 px, 2m29s) → job page; no console errors.
 **Known issues / decisions:** COLMAP 3.9.1 sparse Delaunay mesher hangs (not used); Blender 4.0.2 Cycles bake outputs black
 (replaced by Python projection texturing); CPU dense is lower detail than GPU. See docs/PHOTOGRAMMETRY.md.
+
+## Milestone 7 — 3D workspace ✅
+**Implemented:** API: `GET /api/models/:id/versions`, `GET /api/models/:id/metadata` (measured stats + integrity + textures +
+source/reconstruction artefacts with signed point-cloud/camera/log URLs), `PUT /api/models/:id/current-version` (restore),
+`DELETE /api/models/:id/versions/:vid`. Viewer (`frontend/src/viewer`): React Three Fiber + drei, GLTFLoader with real byte
+progress and error boundary, orbit/zoom/pan, reset, fullscreen, screenshot, auto-rotate, turntable, grid, background and lighting
+presets, Front/Back/Left/Right/Top/Bottom views fitted to the bounding sphere; display modes shaded / wireframe overlay / clay /
+normals / UV checker; skeleton helper; animation mixer; dense point cloud and COLMAP camera frustums; synchronised side-by-side
+Compare of any two versions. Workspace page tabs: 3D Preview, Wireframe, Textures (map previews + resolution), Materials (live
+colour/roughness/metallic preview), UV Maps (UV layout over texture), Geometry (measured integrity + reconstruction toggles), LOD,
+Skeleton, Animation, Compare; Model Info (statistics, attributes, source metrics, processing log) and Versions (view, restore, delete).
+Demo models carry a permanent warning. Responsive: right panel collapses below the viewer under 1536px.
+**Tests:** Playwright with SwiftShader WebGL on the real photogrammetry model: preview, wireframe, UV, geometry (+point cloud,
+cameras), textures — no console errors. Bugs found & fixed: duplicate `@types/three` (npm override), UV canvas freeze (single huge
+path → batched strokes + cap), hidden duplicate panel rendering, black override materials on meshes without normals; pipeline now
+exports vertex normals.
