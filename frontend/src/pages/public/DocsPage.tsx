@@ -23,13 +23,13 @@ function Table({ rows, head }: { head: string[]; rows: string[][] }) {
 export default function DocsPage() {
   return (
     <div className="container grid gap-10 py-12 lg:grid-cols-[220px_1fr]">
-      <aside className="lg:sticky lg:top-24 lg:self-start">
+      <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
         <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">Documentation</p>
         <nav className="flex gap-1 overflow-x-auto lg:flex-col" aria-label="Documentation sections">
           {NAV.map(([id, l, I]) => <a key={id} href={`#${id}`} className="flex shrink-0 items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-muted hover:bg-canvas hover:text-ink"><I className="size-4" />{l}</a>)}
         </nav>
       </aside>
-      <article className="max-w-3xl space-y-4 text-[15px] leading-relaxed text-ink [&_p]:text-ink-muted [&_li]:text-ink-muted">
+      <article className="min-w-0 max-w-3xl space-y-4 text-[15px] leading-relaxed text-ink [&_p]:text-ink-muted [&_li]:text-ink-muted">
         <H id="getting-started">Getting started</H>
         <ol className="list-decimal space-y-1.5 pl-5">
           <li>Create a project from <strong className="text-ink">Create 3D</strong> and choose the asset category.</li>
