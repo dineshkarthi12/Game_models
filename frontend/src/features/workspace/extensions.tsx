@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Wand2, type LucideIcon } from 'lucide-react';
+import { ShieldCheck, Wand2, Gamepad2, type LucideIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import type { Model } from '@/types/api';
 import type { SceneInfo } from '@/viewer/inspect';
@@ -18,6 +18,7 @@ export function WorkspaceActions({ model }: { model: Model }) {
   return (
     <div className="flex flex-wrap gap-2">
       <Link to={`/app/models/${model.id}/refine`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), disabled && 'pointer-events-none opacity-50')}><Wand2 /> Refine Model</Link>
+      <Link to={`/app/models/${model.id}/optimize`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), disabled && 'pointer-events-none opacity-50')}><Gamepad2 /> Game Optimize</Link>
       <ExportActions model={model} />
     </div>
   );

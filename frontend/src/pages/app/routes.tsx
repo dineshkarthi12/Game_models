@@ -12,6 +12,7 @@ const JobPage = lazy(() => import('./JobPage'));
 const PrecisionStudioPage = lazy(() => import('./PrecisionStudioPage'));
 const ModelWorkspacePage = lazy(() => import('./ModelWorkspacePage'));
 const RefinementPage = lazy(() => import('./RefinementPage'));
+const OptimizePage = lazy(() => import('./OptimizePage'));
 
 export const appRoutes = (
   <>
@@ -25,6 +26,7 @@ export const appRoutes = (
     <Route path="precision" element={<PrecisionStudioPage />} />
     <Route path="models/:id" element={<ModelWorkspacePage />} />
     <Route path="models/:id/refine" element={<RefinementPage />} />
+    <Route path="models/:id/optimize" element={<OptimizePage />} />
     <Route path="history" element={<HistoryPage />} />
   </>
 );

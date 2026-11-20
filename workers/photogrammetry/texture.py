@@ -102,6 +102,8 @@ def texture(V, F, UV, VC, cameras, size=2048, depth_scale=0.25):
     out[ys[~seen], xs[~seen]] = vc[~seen]
     img = np.clip(out, 0, 255).astype(np.uint8)
     mask = (idx >= 0).astype(np.uint8)
+    if seen.any():
+        img[mask == 0] = np.median(img[mask > 0], axis=0).astype(np.uint8)  # unused atlas space: neutral, not black
     # Dilate into gutters so mip-mapping and bilinear filtering do not bleed black.
     for _ in range(8):
         dil = cv2.dilate(img, np.ones((3, 3), np.uint8)); mdil = cv2.dilate(mask, np.ones((3, 3), np.uint8))

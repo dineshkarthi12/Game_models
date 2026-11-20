@@ -13,7 +13,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 6 | Photogrammetry | ✅ | COLMAP SfM + CPU stereo + Poisson + photo-projected texture; height within ~1% of ground truth |
 | 7 | 3D workspace | ✅ | R3F viewer on real GLBs: modes, views, stats, textures, UVs, point cloud, cameras, compare |
 | 8 | Accuracy validation & refinement | ✅ | Measured validation report; Blender refinement with texture transfer; versioning |
-| 9 | Game asset pipeline | ⬜ | |
+| 9 | Game asset pipeline | ✅ | Presets, LOD chain, baked normal maps, collision, readiness gate |
 | 10 | Professional export | ⬜ | |
 | 11 | Production infrastructure | ⬜ | |
 | 12 | Final QA & deployment | ⬜ | |
@@ -160,3 +160,21 @@ refinement → v2 with parent link, triangle reduction, op results, current vers
 Playwright: refine (retopology + decimate + texture) and validate with measurements — no console errors.
 **Fixed during milestone:** UV overlap metric (edge double counting), zod discriminated union with refined member,
 voxel remesh of open scans (fill holes first), UV packing efficiency (10% → 17%).
+
+## Milestone 9 — Game asset pipeline ✅
+**Implemented:** engine presets (Unreal hero/prop, Unity, Godot, Mobile/VR) with triangle budgets, texture sizes, LOD ratios,
+collision type; `POST /api/models/:id/optimize`, `GET /api/game-presets`. Pipeline: cleanup → optional retopology (fill holes +
+voxel remesh) → normal-preserving quadric decimation (pymeshlab, no flipped faces) → fresh UV unwrap + island packing → texture
+re-projection from the high-poly → **high-to-low tangent-space normal-map bake** (`bake_normals.py`, self-check flat ≈ 0.98) →
+LOD1…n each with own UVs/texture/normal map → collision mesh (`collision.py`: convex hull ≤128 tris or oriented box) →
+`game_check.py` (critical: budget, UVs, non-overlapping UVs, normals, power-of-two textures ≤ max; advisory: PBR maps,
+manifold, scale, materials, LODs, collision) → `models.game_ready` only when every critical check passes.
+Rigging integration: skeleton/animation status from measured stats; for AI character models, "Request rigging" regenerates with
+the provider's rigging enabled; otherwise an honest explanation. UI: Game Asset Optimization page (presets, budget, texture, LODs,
+collision, normal map, retopology; LOD chain viewer; readiness checks).
+**Tests:** `test/processing.test.ts` now 3/3 (adds: LOD chain, normal map present, budget pass, collision, current = LOD0,
+game_ready flag; invalid texture size → 400). Playwright on the scan: Unreal prop preset → LOD0 8,000 / LOD1 4,000 / LOD2
+2,000 tris, all critical checks pass, 47 s.
+**Found & fixed:** Blender edge-collapse produced flipped faces/black speckles on aggressive reduction → replaced by pymeshlab with
+normal preservation + mandatory re-unwrap; atlas background filled with median colour instead of black.
+**Not implemented (stated in UI):** ambient-occlusion baking; skin-weight editing (rigging is provider-side only).

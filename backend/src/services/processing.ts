@@ -25,7 +25,9 @@ async function setJob(id: string, status: string, extra: Record<string, unknown>
 
 /** Runs Blender refinement (+ texture transfer when UVs change) and stores the result as a new version. */
 export async function runRefine(opts: { ownerId: string; modelId: string; versionId: string; ops: Op[]; label?: string; extraParams?: Record<string, unknown>;
-  isLod?: boolean; lodLevel?: number | null; setCurrent?: boolean; textureSize?: number; work?: string }) {
+  isLod?: boolean; lodLevel?: number | null; setCurrent?: boolean; textureSize?: number; work?: string;
+  /** Hook applied to the final GLB before it is stored (e.g. normal-map baking); returns the path to store. */
+  postProcess?: (finalPath: string, srcPath: string) => Promise<string> }) {
   const parent = await sqlOne<{ storage_key: string; params: Record<string, unknown>; version: number }>('select storage_key, params, version from model_versions where id = $1', [opts.versionId]);
   if (!parent) throw new Error('Source version not found');
   const work = opts.work ?? await makeWorkDir('refine');
@@ -36,14 +38,39 @@ export async function runRefine(opts: { ownerId: string; modelId: string; versio
   const texOps = opts.ops.filter((o) => o.op === 'texture_enhance');
   const opsPath = path.join(work, `ops-${tag}.json`); await fs.writeFile(opsPath, JSON.stringify(geomOps));
   const raw = path.join(work, `raw-${tag}.glb`); const out = path.join(work, `out-${tag}.glb`);
-  const results: unknown[] = []; let done: { uv_changed: boolean; triangles: number } | null = null;
-  if (geomOps.length) {
-    const r = await run(config.BLENDER_BIN, ['-b', '--factory-startup', '-P', workerScript('model-processing', 'refine.py'), '--', src, raw, opsPath], {
-      timeoutMs: 30 * 60_000,
-      onLine: (l) => { if (l.startsWith('OPRESULT ')) results.push(JSON.parse(l.slice(9))); if (l.startsWith('REFINE_DONE ')) done = JSON.parse(l.slice(12)); },
-    });
-    if (r.code !== 0 || !done) throw new Error(`Blender refinement failed: ${(r.stderr || r.stdout).split('\n').filter((x) => /Error|error/.test(x)).slice(-3).join(' ') || r.stderr.slice(-300)}`);
-  } else { await fs.copyFile(src, raw); done = { uv_changed: false, triangles: 0 }; }
+  const results: unknown[] = [];
+  // Geometry ops run in Blender, except decimation which uses pymeshlab (normal-preserving, no flipped faces).
+  // Segments are chained: blender → decimate → blender …; any decimation forces a fresh UV unwrap + texture transfer.
+  const segments: Op[][] = []; let cur: Op[] = [];
+  for (const o of geomOps) { if (o.op === 'decimate') { if (cur.length) segments.push(cur); segments.push([o]); cur = []; } else cur.push(o); }
+  if (cur.length) segments.push(cur);
+  const decimated = geomOps.some((o) => o.op === 'decimate');
+  if (decimated && !(segments.at(-1)?.[0]?.op !== 'decimate' && segments.at(-1)!.some((o) => o.op === 'uv_unwrap'))) {
+    if (segments.at(-1)?.[0]?.op === 'decimate') segments.push([{ op: 'uv_unwrap' }]); else segments.at(-1)!.push({ op: 'uv_unwrap' });
+  }
+  let curFile = src; let uvChanged = false; let n = 0;
+  for (const seg of segments) {
+    const next = path.join(work, `seg-${tag}-${n++}.glb`);
+    if (seg[0]!.op === 'decimate') {
+      const d = seg[0]!;
+      const r = await run(config.PYTHON_BIN, [workerScript('model-processing', 'decimate.py'), curFile, next, String(d.target_triangles ?? 0), String(d.ratio ?? 0.5)], { timeoutMs: 20 * 60_000 });
+      const line = r.stdout.split('\n').find((l) => l.startsWith('DECIMATE_OK '));
+      if (r.code !== 0 || !line) throw new Error(`Decimation failed: ${r.stderr.slice(-300)}`);
+      results.push(JSON.parse(line.slice(12))); uvChanged = true;
+    } else {
+      const opsPath = path.join(work, `ops-${tag}-${n}.json`); await fs.writeFile(opsPath, JSON.stringify(seg));
+      let done: { uv_changed: boolean } | null = null;
+      const r = await run(config.BLENDER_BIN, ['-b', '--factory-startup', '-P', workerScript('model-processing', 'refine.py'), '--', curFile, next, opsPath], {
+        timeoutMs: 30 * 60_000,
+        onLine: (l) => { if (l.startsWith('OPRESULT ')) results.push(JSON.parse(l.slice(9))); if (l.startsWith('REFINE_DONE ')) done = JSON.parse(l.slice(12)); },
+      });
+      if (r.code !== 0 || !done) throw new Error(`Blender refinement failed: ${(r.stderr || r.stdout).split('\n').filter((x) => /Error|error/.test(x)).slice(-3).join(' ') || r.stderr.slice(-300)}`);
+      if ((done as { uv_changed: boolean }).uv_changed) uvChanged = true;
+    }
+    curFile = next;
+  }
+  if (!segments.length) await fs.copyFile(src, raw); else await fs.copyFile(curFile, raw);
+  const done = { uv_changed: uvChanged };
   let final = raw; let transferred = false;
   if ((done as { uv_changed: boolean }).uv_changed) {
     const t = await run(config.PYTHON_BIN, [workerScript('model-processing', 'transfer_texture.py'), src, raw, out, String(opts.textureSize ?? 2048)], { timeoutMs: 20 * 60_000 });
@@ -57,6 +84,7 @@ export async function runRefine(opts: { ownerId: string; modelId: string; versio
     results.push({ op: 'texture_enhance', textures: Number(e.stdout.match(/ENHANCE_OK (\d+)/)?.[1] ?? 0) });
     final = enh;
   }
+  if (opts.postProcess) final = await opts.postProcess(final, src);
   const frameChanged = !!parent.params?.frame_changed || opts.ops.some((o) => FRAME_CHANGING.has(o.op));
   const scaled = opts.ops.find((o) => o.op === 'scale' && !o.factor);
   const params = {

@@ -28,7 +28,12 @@ def main(src, tgt, out, size):
     t = trimesh.load(tgt, force="mesh", process=False)
     img, mat = base_texture(s)
     if img is None or getattr(s.visual, "uv", None) is None:
-        t.export(out); print("TRANSFER_SKIPPED no source texture"); return
+        # No source texture: drop any placeholder texture, keep UVs and a plain material.
+        if hasattr(t.visual, "uv") and t.visual.uv is not None:
+            col = getattr(mat, "baseColorFactor", None) if mat is not None else None
+            t.visual = trimesh.visual.TextureVisuals(uv=t.visual.uv, material=trimesh.visual.material.PBRMaterial(name="Material", baseColorFactor=col if col is not None else [204, 204, 204, 255],
+                                                     metallicFactor=getattr(mat, "metallicFactor", 0.0) or 0.0, roughnessFactor=getattr(mat, "roughnessFactor", 0.8) or 0.8))
+        t.export(out, include_normals=True); print("TRANSFER_SKIPPED no source texture"); return
     tex = np.asarray(img.convert("RGB"))[:, :, ::-1]
     h, w = tex.shape[:2]
     n = min(3_000_000, max(200_000, len(s.faces) * 30))
@@ -47,6 +52,8 @@ def main(src, tgt, out, size):
     col = bilinear(tex, u, v)
     outimg = np.zeros((size, size, 3), np.uint8); outimg[ys, xs] = np.clip(col, 0, 255).astype(np.uint8)
     mask = (idx >= 0).astype(np.uint8)
+    if mask.any():
+        outimg[mask == 0] = np.median(outimg[mask > 0], axis=0).astype(np.uint8)  # unused atlas space: neutral, not black
     for _ in range(8):
         dil = cv2.dilate(outimg, np.ones((3, 3), np.uint8)); md = cv2.dilate(mask, np.ones((3, 3), np.uint8))
         g = (md > 0) & (mask == 0); outimg[g] = dil[g]; mask = md

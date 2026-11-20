@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { parse, uuid } from '../utils/validate.js';
 import { badRequest, notFound } from '../utils/errors.js';
 import { enqueue } from '../jobs/queues.js';
+import { GAME_PRESETS } from '../services/gamePipeline.js';
 
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const opSchema = z.union([
@@ -69,7 +70,24 @@ export async function processingRoutes(app: FastifyInstance) {
     const vid = await versionFor(req.user.id, id, body.version_id);
     const job = await asUser(req.user.id, (db) => db.one(`insert into processing_jobs (owner_id, model_id, version_id, kind, params) values ($1,$2,$3,'refine',$4) returning ${JOB_COLS}`,
       [req.user.id, id, vid, JSON.stringify({ ops: body.operations, label: body.label })]));
-    await enqueue('processing', 'refine', { jobId: job.id });
+    await enqueue('processing', 'refine', { jobId: job.id }, { attempts: 1 });
+    reply.code(202); return job;
+  });
+
+  app.get('/game-presets', async () => ({ items: Object.entries(GAME_PRESETS).map(([id, p]) => ({ id, ...p })) }));
+
+  app.post('/models/:id/optimize', async (req, reply) => {
+    const { id } = parse(z.object({ id: uuid }), req.params);
+    const body = parse(z.object({
+      version_id: uuid.optional(), preset: z.string().max(40).default('custom'),
+      budget: z.number().int().min(200).max(500_000), texture: z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048), z.literal(4096)]),
+      lods: z.array(z.number().gt(0).max(1)).min(1).max(5).refine((a) => a[0] === 1 && a.every((x, i) => i === 0 || x < a[i - 1]!), 'lods must start at 1 and decrease'),
+      collision: z.enum(['convex', 'box', 'none']).default('convex'), normal_map: z.boolean().default(true), retopology: z.boolean().default(false),
+    }), req.body);
+    const vid = await versionFor(req.user.id, id, body.version_id);
+    const job = await asUser(req.user.id, (db) => db.one(`insert into processing_jobs (owner_id, model_id, version_id, kind, params) values ($1,$2,$3,'optimize',$4) returning ${JOB_COLS}`,
+      [req.user.id, id, vid, JSON.stringify(body)]));
+    await enqueue('processing', 'optimize', { jobId: job.id }, { attempts: 1 });
     reply.code(202); return job;
   });
 

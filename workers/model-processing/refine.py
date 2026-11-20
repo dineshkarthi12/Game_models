@@ -12,6 +12,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
 meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
 uv_changed = False
+needs_unwrap = False
 
 
 def tris():
@@ -79,6 +80,8 @@ for spec in ops:
         if target: ratio = max(0.001, min(1.0, float(target) / max(1, before)))
         for o in meshes:
             m = o.modifiers.new("dec", "DECIMATE"); m.decimate_type = "COLLAPSE"; m.ratio = ratio; m.use_collapse_triangulate = True; apply_mod(o, m)
+        # Edge collapse drags UVs across seams; re-unwrap and re-project the texture afterwards.
+        needs_unwrap = True
         report(op, triangles_before=before, triangles_after=tris(), ratio=ratio)
     elif op == "remesh":
         lo, hi = bounds(); diag = (hi - lo).length
@@ -161,6 +164,12 @@ for spec in ops:
     else:
         raise SystemExit(f"Unknown operation {op}")
 
+if needs_unwrap and not uv_changed:
+    for o in meshes:
+        select_only(o); bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003)
+        bpy.ops.uv.select_all(action="SELECT"); bpy.ops.uv.pack_islands(rotate=True, margin=0.002); bpy.ops.object.mode_set(mode="OBJECT")
+    uv_changed = True
 if uv_changed:
     # New topology/UVs: give every mesh UVs so the texture can be transferred afterwards.
     for o in meshes:
@@ -168,6 +177,18 @@ if uv_changed:
             select_only(o); bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
             bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.003)
             bpy.ops.uv.select_all(action="SELECT"); bpy.ops.uv.pack_islands(rotate=True, margin=0.002); bpy.ops.object.mode_set(mode="OBJECT")
+if uv_changed:
+    # Keep TEXCOORD_0 readable downstream: meshes without an image texture get a 4x4 placeholder (replaced by the transfer step).
+    holder = None
+    for o in meshes:
+        has_img = any(s.material and s.material.use_nodes and any(n.type == "TEX_IMAGE" for n in s.material.node_tree.nodes) for s in o.material_slots)
+        if not has_img:
+            if holder is None:
+                img = bpy.data.images.new("uvholder", 4, 4); img.pack()
+                holder = bpy.data.materials.new("Material"); holder.use_nodes = True
+                t = holder.node_tree.nodes.new("ShaderNodeTexImage"); t.image = img
+                holder.node_tree.links.new(t.outputs["Color"], holder.node_tree.nodes["Principled BSDF"].inputs["Base Color"])
+            o.data.materials.clear(); o.data.materials.append(holder)
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.export_scene.gltf(filepath=out, export_format="GLB", export_yup=True, export_apply=True)
 print("REFINE_DONE " + json.dumps({"uv_changed": uv_changed, "triangles": tris()}))

@@ -66,7 +66,8 @@ describe('validation, refinement and versions', () => {
     const v2 = versions[0];
     expect(v2.parent_version_id).toBe(versions[1].id);
     expect(v2.stats.triangles).toBeLessThan(before * 0.5);
-    expect(v2.params.results.map((x: { op: string }) => x.op)).toEqual(['cleanup', 'decimate', 'normals', 'texture_enhance']);
+    expect(v2.params.results.map((x: { op: string }) => x.op)).toEqual(['cleanup', 'decimate', 'normals', 'uv_unwrap', 'texture_enhance']);
+    expect(v2.params.texture_transferred).toBe(true);
     expect((await app.inject({ url: `/api/models/${m.id}`, headers: auth })).json().current_version_id).toBe(v2.id);
     // current version cannot be deleted; restore previous then delete v2
     expect((await app.inject({ method: 'DELETE', url: `/api/models/${m.id}/versions/${v2.id}`, headers: auth })).statusCode).toBe(400);
@@ -75,5 +76,28 @@ describe('validation, refinement and versions', () => {
     // another user cannot refine this model
     const other = await registerUser(app);
     expect((await app.inject({ method: 'POST', url: `/api/models/${m.id}/refine`, headers: other.auth, payload: { operations: [{ op: 'normals' }] } })).statusCode).toBe(404);
+  }, 400_000);
+
+  it('creates a game-ready LOD chain with normal map and collision mesh', async () => {
+    const { auth } = await registerUser(app);
+    const m = await demoModel(auth);
+    const bad = await app.inject({ method: 'POST', url: `/api/models/${m.id}/optimize`, headers: auth, payload: { budget: 2000, texture: 1000, lods: [1, 0.5] } });
+    expect(bad.statusCode).toBe(400); // texture must be power of two
+    const r = await app.inject({ method: 'POST', url: `/api/models/${m.id}/optimize`, headers: auth, payload: { preset: 'mobile', budget: 2000, texture: 512, lods: [1, 0.5], collision: 'box', normal_map: true } });
+    expect(r.statusCode).toBe(202);
+    const j = await job(auth, r.json().id);
+    expect(j.status).toBe('succeeded');
+    const versions = (await app.inject({ url: `/api/models/${m.id}/versions`, headers: auth })).json().items;
+    const lods = versions.filter((v: { is_lod: boolean }) => v.is_lod).sort((a: { lod_level: number }, b: { lod_level: number }) => a.lod_level - b.lod_level);
+    expect(lods.map((v: { lod_level: number }) => v.lod_level)).toEqual([0, 1]);
+    expect(lods[0].stats.triangles).toBeLessThanOrEqual(2000);
+    expect(lods[1].stats.triangles).toBeLessThan(lods[0].stats.triangles);
+    expect(lods[0].stats.textures.map((t: { role: string }) => t.role)).toContain('normal');
+    const rep = lods[0].params.game_ready_report;
+    expect(rep.checks.find((c: { id: string }) => c.id === 'budget').status).toBe('pass');
+    expect(lods[0].params.collision.type).toBe('box');
+    const model = (await app.inject({ url: `/api/models/${m.id}`, headers: auth })).json();
+    expect(model.current_version_id).toBe(lods[0].id);
+    expect(model.game_ready).toBe(rep.game_ready);
   }, 400_000);
 });
