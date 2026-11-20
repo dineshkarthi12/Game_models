@@ -44,6 +44,18 @@ npm run dev:api & npm run dev:worker & npm run dev:web
 Free-tier limits: the Render service sleeps after ~15 minutes idle (first request ≈ 1 min cold start); 512 MB RAM and a fraction
 of a CPU make Blender jobs slow and COLMAP photogrammetry impractical (it may run out of memory). Supabase free storage is 1 GB.
 Upgrade the Render instance (or run `node dist/worker.js` on a separate machine with `RUN_WORKER_IN_API=false`) for real workloads.
+In practice COLMAP feature extraction is killed by the 512 MB limit (exit code -9).
+
+## Free tier with photogrammetry: Vercel + Hugging Face Space + Supabase
+The free Hugging Face CPU Space (2 vCPU, 16 GB RAM) runs the API, the queue workers and Redis in one container
+(`deploy/huggingface/`). Create a **Docker** Space (public, blank template), replace its `README.md` and `Dockerfile` with
+the files from `deploy/huggingface/`, and add the secrets/variables listed in that README. The Dockerfile clones `main`
+from GitHub, so **Settings → Factory rebuild** deploys new commits. Point Vercel's `VITE_API_BASE` at
+`https://<user>-<space>.hf.space/api` and redeploy.
+
+Limits: Redis is in-memory (queued jobs are lost on a restart; the reaper fails and refunds stuck jobs); the Space sleeps after
+48 h without traffic; 2 vCPU makes a 10-image reconstruction take roughly 30–60 minutes. Outbound access from Spaces to the
+Supabase pooler (port 5432) has not been verified here.
 
 ## Supabase
 1. Create a project. Use its Postgres connection string as `DATABASE_URL` (migrations add tables, RLS policies and the
