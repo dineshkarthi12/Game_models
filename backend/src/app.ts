@@ -12,7 +12,7 @@ import { notificationRoutes } from './routes/notifications.js';
 import { registerExtraRoutes } from './routes/index.js';
 
 export async function buildApp() {
-  const app = Fastify({ loggerInstance: logger as unknown as FastifyBaseLogger, trustProxy: true, bodyLimit: 2 * 1024 * 1024, disableRequestLogging: config.isTest });
+  const app = Fastify({ loggerInstance: logger as unknown as FastifyBaseLogger, trustProxy: true, maxParamLength: 2048, bodyLimit: 2 * 1024 * 1024, disableRequestLogging: config.isTest });
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } });
   await app.register(cors, { origin: [config.PUBLIC_APP_URL, /localhost:\d+$/], credentials: true });
   await app.register(rateLimit, { max: config.RATE_LIMIT_PER_MINUTE, timeWindow: '1 minute' });

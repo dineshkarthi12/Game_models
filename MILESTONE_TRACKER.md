@@ -8,7 +8,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 1 | Brand & design system | ✅ | Tokens, logo, primitives, layouts, style guide at /design-system |
 | 2 | Landing page & authentication | ✅ | Local JWT auth verified; Supabase mode implemented, CONFIGURATION REQUIRED |
 | 3 | Dashboard & projects | ✅ | Projects CRUD, library, history, folders/tags, RLS verified |
-| 4 | Multi-view upload | ⬜ | |
+| 4 | Multi-view upload | ✅ | Upload studio, quality metrics, coverage, ORB/RANSAC overlap |
 | 5 | AI provider integration | ⬜ | |
 | 6 | Photogrammetry | ⬜ | |
 | 7 | 3D workspace | ⬜ | |
@@ -63,3 +63,23 @@ dialog, full action menu), Generation History.
 isolation**, app role cannot write the credit ledger, dashboard, folders). Playwright: /app, /app/projects, /app/library,
 /app/history, /app/create render with live data, no overflow; one DOM nesting warning found and fixed.
 **Known issues:** project detail page is delivered with Milestone 4 (depends on images API).
+
+## Milestone 4 — Multi-view upload ✅
+**Implemented:** `POST /api/uploads` (multipart, batch, per-file angle), magic-byte type verification (JPG/PNG/WEBP only,
+extension/MIME ignored), size/megapixel/min-dimension limits, storage quota, per-project image cap, exact-duplicate
+rejection (SHA-256), EXIF-oriented thumbnails (WebP), per-image metrics (Laplacian-variance sharpness, brightness, contrast,
+exposure clipping, resolution, aspect ratio, RGB histogram, 64-bit dHash). Replace, delete, re-angle, reorder.
+Dataset analysis: canonical-angle coverage (reported separately from quality), near-duplicates (dHash ≤ 4), blur/low-res lists,
+lighting consistency, colour-histogram "same object" heuristic (labelled as heuristic), recommendations.
+Overlap check: `workers/model-processing/overlap.py` — ORB + ratio test + RANSAC fundamental matrix, strong-pair graph,
+weakly connected images, suitability for photogrammetry.
+UI: Upload Studio (drag-and-drop, browse, camera capture, real byte-level progress, client-side validation, key-view slots with
+drop-to-assign, all-photographs grid with drag/arrow reordering, replace/delete/full-size inspection with metrics),
+Reference Coverage ring, orientation guide (top-down camera ring), quality panel, overlap panel, recommendations.
+Project detail page (models / reference images / generations tabs). Missing angles never block the user.
+Tool: `workers/tools/render_dataset.py` renders a synthetic multi-view dataset with known ground-truth dimensions (Blender Cycles).
+**Tests:** backend 12/12 (`test/uploads.test.ts`: fake file rejected, duplicate rejected, blur and low-res detected, angles,
+signed URL returns original bytes, tampered signature 403, coverage ratio, overlap inliers > 40 for overlapping crops, weak
+image flagged, re-angle, reorder, replace, delete, storage accounting, cross-user isolation). Playwright: uploads through the
+real file input, re-assigns angles, uploads into the Top slot, runs the overlap check; no console errors.
+**Known issues:** Fastify default `maxParamLength` (100) broke signed URLs — fixed (2048).
