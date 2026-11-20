@@ -8,6 +8,8 @@ bpy.ops.wm.ply_import(filepath=src)
 ob = bpy.context.selected_objects[0]; bpy.context.view_layer.objects.active = ob
 bpy.ops.object.mode_set(mode="EDIT"); bpy.ops.mesh.select_all(action="SELECT")
 bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.003)
+bpy.ops.uv.select_all(action="SELECT")
+bpy.ops.uv.pack_islands(rotate=True, margin=0.002)  # better texel usage than smart_project's default packing
 bpy.ops.object.mode_set(mode="OBJECT")
 # A tiny placeholder texture makes the exporter keep TEXCOORD_0 and readers expose UVs (replaced later).
 img = bpy.data.images.new("uvholder", 4, 4); img.pack()

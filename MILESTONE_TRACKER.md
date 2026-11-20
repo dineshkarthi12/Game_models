@@ -12,7 +12,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 5 | AI provider integration | ⚠️ | Pipeline verified (BullMQ, demo, mock contracts). Real Meshy/Tripo: CONFIGURATION REQUIRED |
 | 6 | Photogrammetry | ✅ | COLMAP SfM + CPU stereo + Poisson + photo-projected texture; height within ~1% of ground truth |
 | 7 | 3D workspace | ✅ | R3F viewer on real GLBs: modes, views, stats, textures, UVs, point cloud, cameras, compare |
-| 8 | Accuracy validation & refinement | ⬜ | |
+| 8 | Accuracy validation & refinement | ✅ | Measured validation report; Blender refinement with texture transfer; versioning |
 | 9 | Game asset pipeline | ⬜ | |
 | 10 | Professional export | ⬜ | |
 | 11 | Production infrastructure | ⬜ | |
@@ -138,3 +138,25 @@ Demo models carry a permanent warning. Responsive: right panel collapses below t
 cameras), textures — no console errors. Bugs found & fixed: duplicate `@types/three` (npm override), UV canvas freeze (single huge
 path → batched strokes + cap), hidden duplicate panel rendering, black override materials on meshes without normals; pipeline now
 exports vertex normals.
+
+## Milestone 8 — Accuracy validation & refinement ✅
+**Implemented:** `workers/model-processing/validate.py` — geometry (non-manifold, holes/boundary loops, continuity, normal
+consistency, degenerate/duplicate), texture (exact UV coverage/overlap by point-in-triangle sampling, out-of-range, area
+distortion; map inventory; photo coverage), reference comparison (GrabCut silhouettes vs. model: true COLMAP-pose projection for
+photogrammetry, bbox-normalised orthographic for others; missing-geometry ratio), dimensions (calibration state; absolute deviation
+vs. user measurements, proportional comparison when uncalibrated), photogrammetry (registration, reprojection error, density),
+AI (reference consistency); separate summary metrics (Reference Coverage, Reconstruction Confidence, Geometric Deviation,
+Texture Quality, Model Integrity); limitations; no overall accuracy score. `refine.py` (Blender): cleanup, fill holes, voxel
+retopology, Laplacian smoothing, quadric decimation, normal correction, scale correction, place on ground, material edit,
+UV unwrap (+ island packing), triangulate; `transfer_texture.py` re-projects textures after topology/UV changes;
+`enhance_texture.py` (unsharp mask + autocontrast). API: `POST /models/:id/validate`, `GET /models/:id/quality-report`,
+`POST /models/:id/refine`, `GET /models/:id/jobs`, `GET /processing-jobs/:id`. Versions are immutable with parent links;
+restore and delete (not current). UI: Validation tab (measurements, summary, grouped checks with method, limitations);
+Refinement Studio (tools with parameters, synchronised before/after, stats diff, revert, regenerate).
+**Measured on the reconstructed scan:** v1 validation — calibrated deviation 0.99%, 41/41 registered, 0.47 px; after
+retopology refinement — watertight, 0 non-manifold, 0 holes, 79,979→20,000 triangles, deviation 1.35%.
+**Tests:** `test/processing.test.ts` 2/2 (validation checks + proportional dims + demo limitation + no accuracy score;
+refinement → v2 with parent link, triangle reduction, op results, current version, delete/restore rules, cross-user 404).
+Playwright: refine (retopology + decimate + texture) and validate with measurements — no console errors.
+**Fixed during milestone:** UV overlap metric (edge double counting), zod discriminated union with refined member,
+voxel remesh of open scans (fill holes first), UV packing efficiency (10% → 17%).

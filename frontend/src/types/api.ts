@@ -111,7 +111,7 @@ export interface ValidationReport {
 }
 
 export interface ProcessingJob {
-  id: string; model_id: string; kind: 'analyze' | 'validate' | 'refine' | 'optimize' | 'lod'; status: JobStatus; params: Record<string, unknown>;
+  id: string; model_id: string; version_id: string | null; kind: 'analyze' | 'validate' | 'refine' | 'optimize' | 'lod'; status: JobStatus; params: Record<string, unknown>;
   result_version_id: string | null; error: string | null; created_at: string; completed_at: string | null;
 }
 
