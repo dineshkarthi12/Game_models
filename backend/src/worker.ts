@@ -44,9 +44,8 @@ export function startWorkers() {
   ];
 }
 
-const isMain = process.argv[1]?.endsWith('worker.ts') || process.argv[1]?.endsWith('worker.js');
-if (isMain) {
-  await migrate((m) => logger.info(m));
+/** Starts queue workers plus maintenance (reaper, monthly credits, heartbeats). Returns a shutdown function. */
+export async function runWorkers() {
   const workers = startWorkers();
   logger.info({ queues: Object.values(QUEUE_NAMES) }, 'workers started');
   const workerId = `${os.hostname()}-${process.pid}`;
@@ -56,11 +55,16 @@ if (isMain) {
   await queue('processing').add('monthly-credits', {}, { repeat: { pattern: '7 0 1 * *' }, jobId: 'monthly-credits' });
   await queue('processing').add('reap', {}, { repeat: { every: 10 * 60_000 }, jobId: 'reaper' });
   const hb = setInterval(() => { void publishHeartbeat(workerId).catch(() => {}); }, 15_000); void publishHeartbeat(workerId).catch(() => {});
+  return async () => { clearInterval(hb); await Promise.all(workers.map((w) => w.close())); };
+}
+
+const isMain = process.argv[1]?.endsWith('worker.ts') || process.argv[1]?.endsWith('worker.js');
+if (isMain) {
+  await migrate((m) => logger.info(m));
+  const stop = await runWorkers();
   const shutdown = async () => {
     logger.info('shutting down workers (letting active jobs finish)');
-    clearInterval(hb);
-    await Promise.all(workers.map((w) => w.close()));
-    await closeQueues(); await pool.end(); process.exit(0);
+    await stop(); await closeQueues(); await pool.end(); process.exit(0);
   };
   process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
 }

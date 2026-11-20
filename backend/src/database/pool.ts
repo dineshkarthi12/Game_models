@@ -5,7 +5,10 @@ import { config } from '../config.js';
 pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
 pg.types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 
-export const pool = new pg.Pool({ connectionString: config.DATABASE_URL, max: 20 });
+export const pool = new pg.Pool({
+  connectionString: config.DATABASE_URL, max: 10,
+  ssl: config.DATABASE_SSL === 'disable' ? undefined : { rejectUnauthorized: config.DATABASE_SSL === 'require' },
+});
 export type Queryable = pg.Pool | pg.PoolClient;
 
 /** System context (table owner, bypasses RLS). Use only in workers or for explicitly owner-scoped writes. */

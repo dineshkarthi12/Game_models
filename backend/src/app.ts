@@ -15,7 +15,8 @@ import { registerExtraRoutes } from './routes/index.js';
 export async function buildApp() {
   const app = Fastify({ loggerInstance: logger as unknown as FastifyBaseLogger, trustProxy: true, maxParamLength: 2048, requestIdHeader: 'x-request-id', genReqId: () => crypto.randomUUID(), bodyLimit: 2 * 1024 * 1024, disableRequestLogging: config.isTest });
   await app.register(helmet, { contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } });
-  await app.register(cors, { origin: [config.PUBLIC_APP_URL, /localhost:\d+$/], credentials: true });
+  const origins: (string | RegExp)[] = [config.PUBLIC_APP_URL.replace(/\/$/, ''), /localhost:\d+$/, ...config.CORS_ORIGINS.split(',').map((o) => o.trim().replace(/\/$/, '')).filter(Boolean)];
+  await app.register(cors, { origin: origins, credentials: true, exposedHeaders: ['x-request-id'] });
   await app.register(rateLimit, { max: config.RATE_LIMIT_PER_MINUTE, timeWindow: '1 minute' });
   await app.register(multipart, { limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 50, fields: 20 } });
 

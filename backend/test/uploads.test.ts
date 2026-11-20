@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import sharp from 'sharp';
-import { getApp, registerUser } from './helpers.js';
+import { getApp, registerUser, fetchSigned } from './helpers.js';
 import { texturedImage } from './fixtures.js';
 
 let app: FastifyInstance;
@@ -47,10 +47,12 @@ describe('uploads & dataset analysis', () => {
     expect(byName['a.jpg'].width).toBe(1600);
 
     // Signed file URL serves the original bytes; tampered token is rejected.
-    const f = await app.inject({ url: byName['a.jpg'].url });
-    expect(f.statusCode).toBe(200);
-    expect(f.rawPayload.equals(a)).toBe(true);
-    expect((await app.inject({ url: byName['a.jpg'].url.slice(0, -3) + 'xyz' })).statusCode).toBe(403);
+    const f = await fetchSigned(app, byName['a.jpg'].url);
+    expect(f.status).toBe(200);
+    expect(f.body.equals(a)).toBe(true);
+    // Local driver: the API enforces the HMAC signature. (S3 presigned URLs are enforced by the provider;
+    // the moto test double used for S3 runs does not check signatures.)
+    if (!/^https?:/.test(byName['a.jpg'].url)) expect((await fetchSigned(app, byName['a.jpg'].url.slice(0, -3) + 'xyz')).status).toBe(403);
 
     const an = (await app.inject({ url: `/api/projects/${p.id}/analysis`, headers: auth })).json();
     expect(an.image_count).toBe(5);

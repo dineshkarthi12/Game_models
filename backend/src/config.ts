@@ -10,6 +10,8 @@ const schema = z.object({
   PUBLIC_API_URL: z.string().default('http://localhost:4000'),
   DATABASE_URL: z.string().default('postgres://postgres:postgres@localhost:5432/vistora'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  /** disable | require (verify CA) | no-verify (encrypted, CA not verified — e.g. Supabase pooler without its CA bundle) */
+  DATABASE_SSL: z.enum(['disable', 'require', 'no-verify']).default('disable'),
   APP_SECRET: z.string().min(16).default('dev-only-secret-change-me-please'),
   AUTH_MODE: z.enum(['local', 'supabase']).default('local'),
   SUPABASE_URL: z.string().optional().default(''),
@@ -27,6 +29,9 @@ const schema = z.object({
   TRIPO_API_BASE: z.string().default('https://api.tripo3d.ai/v2/openapi'),
   PROVIDER_WEBHOOK_SECRET: z.string().optional().default(''),
   DEMO_MODE: bool.default(false),
+  RUN_WORKER_IN_API: bool.default(false),
+  /** Extra allowed browser origins, comma-separated (PUBLIC_APP_URL is always allowed). */
+  CORS_ORIGINS: z.string().optional().default(''),
   COLMAP_BIN: z.string().default('colmap'),
   BLENDER_BIN: z.string().default('blender'),
   PYTHON_BIN: z.string().default('../workers/.venv/bin/python'),

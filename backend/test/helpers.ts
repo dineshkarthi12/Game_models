@@ -22,3 +22,9 @@ export async function registerUser(a: FastifyInstance, name = 'Tester') {
   const body = res.json();
   return { token: body.token as string, user: body.user, email, auth: { authorization: `Bearer ${body.token}` } };
 }
+
+/** Fetch a signed file URL: in-process for local-driver URLs, over HTTP for absolute (S3 presigned) URLs. */
+export async function fetchSigned(a: FastifyInstance, url: string): Promise<{ status: number; body: Buffer }> {
+  if (/^https?:\/\//.test(url)) { const r = await fetch(url); return { status: r.status, body: Buffer.from(await r.arrayBuffer()) }; }
+  const r = await a.inject({ url }); return { status: r.statusCode, body: r.rawPayload };
+}

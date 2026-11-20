@@ -32,6 +32,19 @@ npm run dev:api & npm run dev:worker & npm run dev:web
 ```
 `python3-numpy` is required because Blender's glTF exporter imports numpy from the system Python.
 
+## Free tier: Vercel + Render + Supabase
+| Piece | Service | Notes |
+|---|---|---|
+| Frontend | Vercel (`vercel.json`) | env `VITE_API_BASE=https://<render-service>.onrender.com/api` |
+| API + workers | Render free web service from `render.yaml` (Docker) | `RUN_WORKER_IN_API=true` (free plans have no background workers) |
+| Redis | Render free Key Value (`noeviction`, internal only) | from the same blueprint |
+| Database | Supabase Postgres | **Session pooler** connection string (Render has no IPv6; the direct host is IPv6-only); `DATABASE_SSL=no-verify` |
+| Files | Supabase Storage, private bucket `vistora`, S3 endpoint + access keys | `STORAGE_DRIVER=s3` |
+
+Free-tier limits: the Render service sleeps after ~15 minutes idle (first request ≈ 1 min cold start); 512 MB RAM and a fraction
+of a CPU make Blender jobs slow and COLMAP photogrammetry impractical (it may run out of memory). Supabase free storage is 1 GB.
+Upgrade the Render instance (or run `node dist/worker.js` on a separate machine with `RUN_WORKER_IN_API=false`) for real workloads.
+
 ## Supabase
 1. Create a project. Use its Postgres connection string as `DATABASE_URL` (migrations add tables, RLS policies and the
    `vistora_app` role; `app_current_user_id()` falls back to `auth.uid()`).

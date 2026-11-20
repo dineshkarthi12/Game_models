@@ -1,0 +1,55 @@
+# Render Blueprint (New → Blueprint → select this repo). Free tier: API with in-process workers + Key Value (Redis).
+# Database: Supabase Postgres (Session pooler URL). Storage: Supabase Storage via its S3 endpoint.
+services:
+  - type: web
+    name: vistora-3d-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: APP_SECRET
+        generateValue: true
+      - key: AUTH_MODE
+        value: local
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: no-verify
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: vistora-3d-redis
+          property: connectionString
+      - key: RUN_WORKER_IN_API
+        value: "true"
+      - key: WORKER_CONCURRENCY_PROCESSING
+        value: "1"
+      - key: DEMO_MODE
+        value: "true"
+      - key: PUBLIC_APP_URL
+        sync: false
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        value: vistora
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+  - type: keyvalue
+    name: vistora-3d-redis
+    plan: free
+    region: singapore
+    maxmemoryPolicy: noeviction
+    ipAllowList: []

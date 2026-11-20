@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Worker } from 'bullmq';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getApp, registerUser } from './helpers.js';
+import { getApp, registerUser, fetchSigned } from './helpers.js';
 import { startWorkers } from '../src/worker.js';
 import { queue, closeQueues } from '../src/jobs/queues.js';
 import { config } from '../src/config.js';
@@ -38,9 +38,9 @@ describe('professional export', () => {
     }
     // Download through the signed URL and inspect the archive.
     const { url } = (await app.inject({ url: `/api/exports/${e.id}/download`, headers: auth })).json();
-    const zip = await app.inject({ url });
-    expect(zip.statusCode).toBe(200);
-    const zp = path.resolve(config.WORK_DIR, `test-${e.id}.zip`); await fs.writeFile(zp, zip.rawPayload);
+    const zip = await fetchSigned(app, url);
+    expect(zip.status).toBe(200);
+    const zp = path.resolve(config.WORK_DIR, `test-${e.id}.zip`); await fs.writeFile(zp, zip.body);
     const list = await run(config.PYTHON_BIN, ['-c', 'import sys,zipfile,json;z=zipfile.ZipFile(sys.argv[1]);print(json.dumps(z.namelist()));print(z.read([n for n in z.namelist() if n.endswith("metadata.json")][0]).decode())', zp]);
     const [namesLine, ...metaLines] = list.stdout.trim().split('\n');
     const names: string[] = JSON.parse(namesLine!);
@@ -50,7 +50,7 @@ describe('professional export', () => {
     expect(meta.is_demo).toBe(true);
     expect(meta.settings.units).toBe('cm');
     // Signatures are genuine (no renamed files).
-    expect(zip.rawPayload.subarray(0, 2).toString()).toBe('PK');
+    expect(zip.body.subarray(0, 2).toString()).toBe('PK');
 
     // Other users cannot download it.
     const other = await registerUser(app);
