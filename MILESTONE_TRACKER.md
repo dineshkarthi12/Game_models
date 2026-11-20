@@ -14,7 +14,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 7 | 3D workspace | ✅ | R3F viewer on real GLBs: modes, views, stats, textures, UVs, point cloud, cameras, compare |
 | 8 | Accuracy validation & refinement | ✅ | Measured validation report; Blender refinement with texture transfer; versioning |
 | 9 | Game asset pipeline | ✅ | Presets, LOD chain, baked normal maps, collision, readiness gate |
-| 10 | Professional export | ⬜ | |
+| 10 | Professional export | ✅ | FBX/GLB/GLTF/OBJ/USD/USDZ/STL, presets, re-import validation, ZIP |
 | 11 | Production infrastructure | ⬜ | |
 | 12 | Final QA & deployment | ⬜ | |
 
@@ -178,3 +178,20 @@ game_ready flag; invalid texture size → 400). Playwright on the scan: Unreal p
 **Found & fixed:** Blender edge-collapse produced flipped faces/black speckles on aggressive reduction → replaced by pymeshlab with
 normal preservation + mandatory re-unwrap; atlas background filled with median colour instead of black.
 **Not implemented (stated in UI):** ambient-occlusion baking; skin-weight editing (rigging is provider-side only).
+
+## Milestone 10 — Professional export ✅
+**Implemented:** `workers/export-processing/export.py` (Blender: FBX, GLB, GLTF, OBJ, STL; scale, units, axes, texture cap,
+triangulation, include toggles, LOD files, Unreal UCX_ collision in FBX / separate collision elsewhere, textures written to
+`Textures/` and referenced relatively), `usd_export.py` (Pixar usd-core: USD/USDZ with UsdPreviewSurface, normal map, units,
+up axis; verification), `verify.py` (fresh-session re-import), `package.py` (ZIP). Presets for Blender, Maya, Unreal, Unity,
+Godot, Universal. API: `GET /export-presets`, `POST /models/:id/export`, `GET /exports`, `GET /exports/:id`,
+`GET /exports/:id/download` (10-minute signed URL), `DELETE /exports/:id`. UI: Export dialog in the workspace and Export
+Center page (new export + history with per-file validation and download).
+**Tests:** `test/exports.test.ts` — demo model exported to all 7 formats; every file validated with the exact triangle count;
+ZIP downloaded via signed URL contains README, metadata (units, demo flag) and each extension; cross-user download → 404.
+Real scan: Unreal preset with LOD0–LOD2 + collision → 9 validated files (FBX 8,000/4,000/2,000 tris, USD, GLB);
+Universal → GLB, GLTF, OBJ, STL, USDZ validated. Playwright: export dialog → Export Center → package downloaded.
+**Found & fixed:** packed GLB textures had no path (FBX copy failed) → saved to Textures/; Blender build lacks USD → pxr;
+STL included collision → excluded; inconsistent USD file names; `-Infinity` in verification JSON broke parsing.
+**Import into Blender verified** (re-import step). Maya, Unreal Engine and Unity are not installed in this environment, so
+import into those applications could not be tested here; files follow their documented conventions.

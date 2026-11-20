@@ -6,6 +6,7 @@ import { processAnalyze } from './jobs/processors/analyze.js';
 import { processReconstruction } from './reconstruction/processor.js';
 import { processRefineJob, processValidateJob } from './services/processing.js';
 import { processOptimizeJob } from './services/gamePipeline.js';
+import { processExportJob } from './services/exporter.js';
 import { processorRegistry } from './jobs/registry.js';
 import { logger } from './utils/logger.js';
 import { pool } from './database/pool.js';
@@ -16,6 +17,7 @@ processorRegistry.processing['analyze'] = (job: Job) => processAnalyze(job.data)
 processorRegistry.processing['refine'] = (job: Job) => processRefineJob(job.data);
 processorRegistry.processing['validate'] = (job: Job) => processValidateJob(job.data);
 processorRegistry.processing['optimize'] = (job: Job) => processOptimizeJob(job.data);
+processorRegistry.export['export'] = (job: Job) => processExportJob(job.data);
 processorRegistry.photogrammetry['reconstruct'] = (job: Job) => processReconstruction(job.data);
 
 export function startWorkers() {
