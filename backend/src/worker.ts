@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { redis, QUEUE_NAMES, closeQueues } from './jobs/queues.js';
 import { processAiGeneration } from './jobs/processors/ai.js';
 import { processAnalyze } from './jobs/processors/analyze.js';
+import { processReconstruction } from './reconstruction/processor.js';
 import { processorRegistry } from './jobs/registry.js';
 import { logger } from './utils/logger.js';
 import { pool } from './database/pool.js';
@@ -10,6 +11,7 @@ import { migrate } from './database/migrate.js';
 
 processorRegistry.ai['generate'] = (job: Job) => processAiGeneration(job.data, { attemptsMade: job.attemptsMade, maxAttempts: job.opts.attempts ?? 1 });
 processorRegistry.processing['analyze'] = (job: Job) => processAnalyze(job.data);
+processorRegistry.photogrammetry['reconstruct'] = (job: Job) => processReconstruction(job.data);
 
 export function startWorkers() {
   const mk = (key: keyof typeof QUEUE_NAMES, concurrency: number) => {

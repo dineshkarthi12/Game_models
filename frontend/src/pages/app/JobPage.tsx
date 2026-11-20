@@ -79,13 +79,17 @@ export default function JobPage() {
           <div className="flex items-center gap-2 text-[13px] font-semibold"><ModeIcon className="size-4 text-brand" />{g.mode === 'ai' ? `AI Reconstruction · ${titleCase(g.provider)}` : 'Photogrammetry · COLMAP'}</div>
           <p className="mt-1 text-xs text-ink-muted">{g.used_image_ids.length} of {g.input_image_ids.length} images used</p>
           <div className="mt-3 grid grid-cols-3 gap-1.5">
-            {imgs?.items.filter((i) => g.input_image_ids.includes(i.id)).map((im) => (
+            {imgs?.items.filter((i) => g.input_image_ids.includes(i.id)).slice(0, 12).map((im) => (
               <img key={im.id} src={im.thumb_url} alt={`${ANGLE_LABELS[im.angle]}${used.has(im.id) ? ' (used)' : ' (not used)'}`} title={`${ANGLE_LABELS[im.angle]}${used.has(im.id) ? ' — used' : ' — not used'}`}
                 className={cn('aspect-square w-full rounded-md object-cover', used.has(im.id) ? 'ring-2 ring-brand' : 'opacity-40')} />
             ))}
           </div>
+          {g.input_image_ids.length > 12 && <p className="mt-1.5 text-xs text-ink-muted">+{g.input_image_ids.length - 12} more</p>}
           <dl className="mt-4 space-y-1.5 text-xs">
-            {Object.entries({ Quality: g.settings.quality, Texture: g.settings.texture_resolution, 'Polygon level': g.settings.polygon_level, Category: g.settings.category }).map(([k, v]) => v && (
+            {Object.entries(g.mode === 'ai'
+              ? { Quality: g.settings.quality, Texture: g.settings.texture_resolution, 'Polygon level': g.settings.polygon_level, Category: g.settings.category }
+              : { Quality: g.settings.quality, Matching: g.settings.matcher, 'Max image size': g.settings.max_image_size ? `${g.settings.max_image_size}px` : undefined,
+                  'Known dimension': g.settings.known_dimension ? `${g.settings.known_dimension.axis} = ${g.settings.known_dimension.value} ${g.settings.known_dimension.unit}` : 'none' }).map(([k, v]) => v && (
               <div key={k} className="flex justify-between"><dt className="text-ink-muted">{k}</dt><dd className="font-medium capitalize">{String(v)}</dd></div>))}
             <div className="flex justify-between"><dt className="text-ink-muted">Credits</dt><dd className="font-medium">{g.credits_charged}</dd></div>
             {g.provider_task_id && <div className="flex justify-between gap-2"><dt className="text-ink-muted">Task ID</dt><dd className="truncate font-mono text-[11px]">{g.provider_task_id}</dd></div>}

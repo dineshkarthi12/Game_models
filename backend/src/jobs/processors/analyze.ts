@@ -30,9 +30,12 @@ export async function processAnalyze(data: { modelId: string; versionId: string;
     const glb = path.join(work, 'model.glb');
     await storage.download(v.storage_key, glb);
     const { stats, integrity } = await analyzeGlb(glb);
-    const prev = await sqlOne<{ stats: { scale_calibrated?: boolean; unit?: string; scale?: unknown } }>(
+    const own = await sqlOne<{ params: { scale_calibrated?: boolean; unit?: string } }>('select params from model_versions where id = $1', [data.versionId]);
+    const prev = await sqlOne<{ stats: { scale_calibrated?: boolean; unit?: string } }>(
       'select md.stats from model_versions mv join model_metadata md on md.version_id = mv.parent_version_id where mv.id = $1', [data.versionId]);
-    const full = { ...stats, integrity, scale_calibrated: prev?.stats?.scale_calibrated ?? false };
+    const calibrated = own?.params?.scale_calibrated ?? prev?.stats?.scale_calibrated ?? false;
+    const unit = own?.params?.unit ?? prev?.stats?.unit ?? (calibrated ? 'm' : 'relative');
+    const full = { ...stats, integrity, scale_calibrated: calibrated, unit: calibrated ? 'm' : unit === 'm' ? 'unknown' : unit };
     await sql(`insert into model_metadata (version_id, owner_id, stats) values ($1,$2,$3)
                on conflict (version_id) do update set stats = excluded.stats, analyzed_at = now()`, [data.versionId, v.owner_id, JSON.stringify(full)]);
     await sql('delete from model_textures where version_id = $1', [data.versionId]);

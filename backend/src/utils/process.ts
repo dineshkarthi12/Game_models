@@ -11,11 +11,13 @@ export interface RunResult { code: number | null; stdout: string; stderr: string
  * Run a native process. Lines on stdout can be streamed to onLine (used for JSON progress events).
  * Never uses a shell; arguments are passed as an array.
  */
-export function run(cmd: string, args: string[], opts: { cwd?: string; timeoutMs?: number; onLine?: (l: string) => void; signal?: AbortSignal; env?: Record<string, string> } = {}): Promise<RunResult> {
+export function run(cmd: string, args: string[], opts: { cwd?: string; timeoutMs?: number; onLine?: (l: string) => void; signal?: AbortSignal; env?: Record<string, string>; processGroup?: boolean } = {}): Promise<RunResult> {
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd: opts.cwd, env: { ...process.env, ...opts.env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(cmd, args, { cwd: opts.cwd, env: { ...process.env, ...opts.env }, stdio: ['ignore', 'pipe', 'pipe'], detached: !!opts.processGroup });
     let stdout = ''; let stderr = ''; let buf = ''; let timedOut = false; let killed = false;
-    const kill = () => { killed = true; child.kill('SIGTERM'); setTimeout(() => child.kill('SIGKILL'), 5000).unref(); };
+    // With processGroup, the whole tree (e.g. python -> colmap) is terminated, not just the parent.
+    const sig = (s: NodeJS.Signals) => { try { if (opts.processGroup && child.pid) process.kill(-child.pid, s); else child.kill(s); } catch { /* already exited */ } };
+    const kill = () => { killed = true; sig('SIGTERM'); setTimeout(() => sig('SIGKILL'), 5000).unref(); };
     const t = opts.timeoutMs ? setTimeout(() => { timedOut = true; kill(); }, opts.timeoutMs) : null;
     opts.signal?.addEventListener('abort', kill);
     const onOut = (d: Buffer): void => {

@@ -10,7 +10,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 3 | Dashboard & projects | ✅ | Projects CRUD, library, history, folders/tags, RLS verified |
 | 4 | Multi-view upload | ✅ | Upload studio, quality metrics, coverage, ORB/RANSAC overlap |
 | 5 | AI provider integration | ⚠️ | Pipeline verified (BullMQ, demo, mock contracts). Real Meshy/Tripo: CONFIGURATION REQUIRED |
-| 6 | Photogrammetry | ⬜ | |
+| 6 | Photogrammetry | ✅ | COLMAP SfM + CPU stereo + Poisson + photo-projected texture; height within ~1% of ground truth |
 | 7 | 3D workspace | ⬜ | |
 | 8 | Accuracy validation & refinement | ⬜ | |
 | 9 | Game asset pipeline | ⬜ | |
@@ -106,3 +106,19 @@ stage display corrected to show unobserved stages as "not reported" instead of c
 environment**: no Meshy/Tripo API keys, and both API hosts are blocked by the sandbox network policy. Action: set
 `MESHY_API_KEY` and/or `TRIPO_API_KEY`, allow `api.meshy.ai` / `api.tripo3d.ai`, re-verify field names (docs/AI_PROVIDERS.md),
 run one generation per provider.
+
+## Milestone 6 — Photogrammetry ✅
+**Implemented:** `workers/photogrammetry/pipeline.py` (COLMAP SfM, undistortion, GPU PatchMatch path, CPU SGBM dense fallback
+with left-right check and multi-pair voxel fusion, gravity/front orientation, RANSAC support-plane removal, screened Poisson
+meshing with support trimming, decimation, Blender UV unwrap, photo-projection texturing with depth-buffer occlusion,
+known-dimension scale calibration, point-cloud GLB + camera poses + log outputs); `colmap_io.py`, `texture.py`, `unwrap.py`;
+Node processor with live stage/metric mirroring, process-group cancellation, 2-hour limit, log upload, model/version creation;
+`POST/GET /api/reconstruction`, `/cancel`, list endpoint; Precision Studio page (engine status, capture requirements incl.
+reflective/transparent/featureless guidance, reconstruction history with registered images, reprojection error, dense mode, scale);
+Configure step photogrammetry options (matcher, known dimension); job page photogrammetry metrics; dataset renderer with ground truth.
+**Tests:** `test/photogrammetry.test.ts` 3/3 — real reconstruction through API + BullMQ (registration ≥ 90%, reprojection
+< 1.5 px, textured, calibrated, **height deviation 0.84% vs ground truth**); non-overlapping photos fail with a clear message
++ refund + stored log; cancellation kills the Python/COLMAP process group and refunds. Playwright: 41 photos → overlap check →
+configure with known dimension → reconstruction (41/41 registered, 0.468 px, 2m29s) → job page; no console errors.
+**Known issues / decisions:** COLMAP 3.9.1 sparse Delaunay mesher hangs (not used); Blender 4.0.2 Cycles bake outputs black
+(replaced by Python projection texturing); CPU dense is lower detail than GPU. See docs/PHOTOGRAMMETRY.md.
