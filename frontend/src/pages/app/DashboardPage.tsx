@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {quick.map((q) => (
-          <Link key={q.title} to={q.to} className="surface group flex items-center gap-3 p-4 transition-shadow hover:shadow-raised">
+          <Link key={q.title} to={q.to} className="surface group flex min-w-0 items-center gap-3 p-4 transition-shadow hover:shadow-raised">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-lavender text-brand"><q.icon className="size-5" /></span>
             <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{q.title}</span><span className="block truncate text-xs text-ink-muted">{q.body}</span></span>
             <ArrowRight className="size-4 text-ink-subtle transition-transform group-hover:translate-x-0.5" />

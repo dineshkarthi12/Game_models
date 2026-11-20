@@ -1,0 +1,36 @@
+# Local/self-hosted stack. Cloud deployment (Vercel + Render/Railway + Supabase + R2) is described in docs/DEPLOYMENT.md.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: vistora }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD", "pg_isready", "-U", "postgres"], interval: 5s, retries: 10 }
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/vistora
+      REDIS_URL: redis://redis:6379
+    volumes: [storage:/data]
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_started } }
+    ports: ["4000:4000"]
+  worker:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    command: ["node", "dist/worker.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/vistora
+      REDIS_URL: redis://redis:6379
+    volumes: [storage:/data]
+    depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_started } }
+    # For GPU photogrammetry, use a CUDA COLMAP build and uncomment:
+    # deploy: { resources: { reservations: { devices: [{ capabilities: [gpu] }] } } }
+  web:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    depends_on: [api]
+    ports: ["8080:80"]
+volumes: { pgdata: {}, redisdata: {}, storage: {} }

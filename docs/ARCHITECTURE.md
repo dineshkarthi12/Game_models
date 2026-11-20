@@ -46,3 +46,17 @@ owner (or team members for team-shared projects). The API executes user requests
 ## Files
 Storage keys: `users/<uid>/projects/<pid>/images/<uuid>.<ext>`,
 `users/<uid>/models/<mid>/v<n>/model.glb`, `users/<uid>/exports/<eid>/<name>.zip`.
+
+## Repository layout (as built)
+```
+frontend/src   pages/ (public, auth, app) · features/ (upload, generate, workspace, export) · viewer/ (R3F) · components/ · hooks/ · services/ · stores/ · types/
+backend/src    routes/ · services/ · providers/ (meshy, tripo, demo) · reconstruction/ (COLMAP processor) · jobs/ (queues, registry, processors) ·
+               storage/ · database/ (pool, migrate, RLS helper) · auth/ · middleware/ · scripts/ · worker.ts · server.ts
+workers/       photogrammetry/ (pipeline.py, texture.py, unwrap.py, colmap_io.py) · model-processing/ (analyze, validate, refine, decimate,
+               bake_normals, transfer_texture, enhance_texture, collision, game_check, thumbnail, demo_model, overlap) ·
+               export-processing/ (export.py, usd_export.py, verify.py, package.py) · tools/render_dataset.py
+database/      migrations 001–004 (schema, RLS, analysis, reconstruction outputs)
+e2e/           Playwright end-to-end suite
+```
+The four BullMQ queues map to processors: `ai-generation` → providers, `photogrammetry` → COLMAP pipeline,
+`model-processing` → analyze / validate / refine / optimize / maintenance, `export` → exporter.

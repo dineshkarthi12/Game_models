@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+workers/.venv
+backend/.tmp
+backend/storage-data
+e2e/.fixtures
+test-results
+.git
+.env

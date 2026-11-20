@@ -14,11 +14,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       output: {
-        manualChunks: {
-          three: ['three'],
-          r3f: ['@react-three/fiber', '@react-three/drei'],
-          react: ['react', 'react-dom', 'react-router-dom'],
-        },
+        // Only the React runtime is pinned; three.js / R3F are split along the lazy viewer routes so
+        // public pages never download them.
+        manualChunks: { react: ['react', 'react-dom', 'react-router-dom'] },
       },
     },
   },

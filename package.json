@@ -14,9 +14,13 @@
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
     "lint": "npm run lint -w backend && npm run lint -w frontend",
     "test": "npm run test -w backend && npm run test -w frontend",
-    "build": "npm run build -w backend && npm run build -w frontend"
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "e2e": "playwright test --trace off"
   },
   "overrides": {
     "@types/three": "0.170.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }

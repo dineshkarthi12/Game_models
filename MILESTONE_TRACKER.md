@@ -16,7 +16,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 9 | Game asset pipeline | ✅ | Presets, LOD chain, baked normal maps, collision, readiness gate |
 | 10 | Professional export | ✅ | FBX/GLB/GLTF/OBJ/USD/USDZ/STL, presets, re-import validation, ZIP |
 | 11 | Production infrastructure | ✅ | Teams + RLS sharing, ledger/plans, recovery reaper, monitoring, readiness |
-| 12 | Final QA & deployment | ⬜ | |
+| 12 | Final QA & deployment | ✅ | 29 backend + 6 unit + 5 e2e passing; builds; Docker/Compose written (not run: no daemon) |
 
 ---
 
@@ -213,3 +213,52 @@ provider webhooks token-checked and treated as hints.
 **Tests:** `test/infra.test.ts` 4/4 (team plan gate, invite linking, RLS visibility for member vs outsider, member cannot delete;
 running balance; monthly credits once per month; checkout not configured; reaper fail + single refund; readiness + request id).
 Playwright: team, notifications, profile, settings tabs, export center, unknown route → 404; one React key warning fixed.
+
+## Milestone 12 — Final QA & deployment ✅
+**Implemented:** frontend unit tests (Vitest + RTL), Playwright e2e suite (`e2e/`: auth flows, full create → upload → generate →
+inspect → export → download workflow, responsive overflow at 375/768 px + mobile navigation), Dockerfiles (API/worker image with
+COLMAP, Blender, Python venv; nginx web image with SPA fallback and API proxy), `docker-compose.yml`, `workers/requirements.txt`,
+README, docs/API.md, docs/DEPLOYMENT.md, architecture layout. Performance: lazy routes, three.js/R3F only on viewer routes
+(public pages preload only the React runtime ≈ 133 KB gzip), GLB progressive byte progress, UV drawing caps, signed URL caching.
+**Final verification (2026-11-20):**
+| Check | Result |
+|---|---|
+| `npm run typecheck` (backend + frontend) | pass |
+| `npm run lint` (0 warnings allowed) | pass |
+| Backend integration tests (real Postgres, Redis, BullMQ, COLMAP, Blender) | **29/29** in 8 files |
+| Frontend unit tests | **6/6** |
+| Playwright e2e | **5/5** |
+| Production builds (`tsc`, `vite build`); compiled API `/api/health/ready` | pass |
+**Bugs found by this milestone's tests and fixed:** dashboard quick-action overflow at 375 px; three.js preloaded on public pages.
+**Not verified here:** Docker image build / Compose (no Docker daemon in the build environment); Supabase mode against a live
+project; S3/R2 driver against a live bucket; real Meshy/Tripo calls; import into Maya/Unreal/Unity (not installed).
+
+---
+
+# Final acceptance status
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | Register and log in | ✅ local auth (e2e); Supabase mode implemented, not live-tested |
+| 2 | Create projects | ✅ |
+| 3 | Upload multiple reference photographs | ✅ |
+| 4 | Assign camera angles | ✅ slots, per-image select, drag-to-slot |
+| 5 | Validate image coverage | ✅ coverage, quality metrics, ORB/RANSAC overlap |
+| 6 | Select AI or Precision reconstruction | ✅ |
+| 7 | Configure generation | ✅ capability- and plan-driven options |
+| 8 | Start actual generation or reconstruction jobs | ✅ photogrammetry (real COLMAP); AI: ⚠️ CONFIGURATION REQUIRED (keys + network); demo labelled |
+| 9 | Track real processing status | ✅ observed stages, provider/pipeline metrics, event log |
+| 10 | View generated 3D models | ✅ |
+| 11 | Rotate, zoom, inspect geometry | ✅ |
+| 12 | Inspect textures and materials | ✅ |
+| 13 | View model statistics | ✅ measured |
+| 14 | Compare models against references | ✅ silhouette IoU (true camera poses for photogrammetry) |
+| 15 | Validate dimensions | ✅ absolute (calibrated) / proportional |
+| 16 | Refine models | ✅ versioned |
+| 17 | Optimise game assets | ✅ LODs, normal bake, collision, readiness gate |
+| 18 | Prepare rigging where supported | ⚠️ provider rigging path implemented (needs provider keys); skeleton/animation inspection and export work |
+| 19 | Export FBX, GLB, GLTF, OBJ, USD | ✅ plus USDZ, STL; re-import validated |
+| 20 | Download model and texture packages | ✅ ZIP via signed URL |
+| 21 | Import into Blender, Maya, Unreal, Unity | ✅ Blender (automated re-import); ⚠️ others not installed here — files follow documented conventions |
+| 22 | Manage projects and model versions | ✅ |
+| 23 | Access previous generations | ✅ history |
