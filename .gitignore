@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+workers/.venv/
+__pycache__/
+*.pyc
+storage-data/
+.tmp/
+coverage/
+playwright-report/
+test-results/
+*.log
