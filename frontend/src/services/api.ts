@@ -32,6 +32,7 @@ export const http = {
   put: <T>(p: string, json?: unknown) => api<T>(p, { method: 'PUT', json: json ?? {} }),
   patch: <T>(p: string, json?: unknown) => api<T>(p, { method: 'PATCH', json: json ?? {} }),
   del: <T>(p: string) => api<T>(p, { method: 'DELETE' }),
+  api,
 };
 
 /** Multipart upload with real byte-level progress (XHR exposes upload progress; fetch does not). */

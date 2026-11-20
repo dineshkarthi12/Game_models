@@ -14,6 +14,11 @@ const ModelWorkspacePage = lazy(() => import('./ModelWorkspacePage'));
 const RefinementPage = lazy(() => import('./RefinementPage'));
 const OptimizePage = lazy(() => import('./OptimizePage'));
 const ExportCenterPage = lazy(() => import('./ExportCenterPage'));
+const TeamPage = lazy(() => import('./TeamPage'));
+const NotificationsPage = lazy(() => import('./NotificationsPage'));
+const ProfilePage = lazy(() => import('./ProfilePage'));
+const SettingsPage = lazy(() => import('./SettingsPage'));
+const NotFoundPage = lazy(() => import('../NotFoundPage'));
 
 export const appRoutes = (
   <>
@@ -29,6 +34,11 @@ export const appRoutes = (
     <Route path="models/:id/refine" element={<RefinementPage />} />
     <Route path="models/:id/optimize" element={<OptimizePage />} />
     <Route path="exports" element={<ExportCenterPage />} />
+    <Route path="team" element={<TeamPage />} />
+    <Route path="notifications" element={<NotificationsPage />} />
+    <Route path="profile" element={<ProfilePage />} />
+    <Route path="settings" element={<SettingsPage />} />
+    <Route path="*" element={<NotFoundPage />} />
     <Route path="history" element={<HistoryPage />} />
   </>
 );

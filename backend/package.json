@@ -12,7 +12,8 @@
     "migrate": "tsx src/database/migrate.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings 0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "set-plan": "tsx src/scripts/set-plan.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.701.0",

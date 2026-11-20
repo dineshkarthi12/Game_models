@@ -15,7 +15,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 8 | Accuracy validation & refinement | ✅ | Measured validation report; Blender refinement with texture transfer; versioning |
 | 9 | Game asset pipeline | ✅ | Presets, LOD chain, baked normal maps, collision, readiness gate |
 | 10 | Professional export | ✅ | FBX/GLB/GLTF/OBJ/USD/USDZ/STL, presets, re-import validation, ZIP |
-| 11 | Production infrastructure | ⬜ | |
+| 11 | Production infrastructure | ✅ | Teams + RLS sharing, ledger/plans, recovery reaper, monitoring, readiness |
 | 12 | Final QA & deployment | ⬜ | |
 
 ---
@@ -195,3 +195,21 @@ Universal → GLB, GLTF, OBJ, STL, USDZ validated. Playwright: export dialog →
 STL included collision → excluded; inconsistent USD file names; `-Infinity` in verification JSON broke parsing.
 **Import into Blender verified** (re-import step). Maya, Unreal Engine and Unity are not installed in this environment, so
 import into those applications could not be tested here; files follow their documented conventions.
+
+## Milestone 11 — Production infrastructure ✅
+**Implemented:** Teams (Studio plan gate, invitations by email linked on sign-in, member removal, project sharing through
+`projects.team_id` with RLS read access for active members, owner-only delete); billing (`/billing`, ledger with running balance via
+window function, plan cards, checkout returns `payments_not_configured`, admin `npm run set-plan -w backend`); monthly plan credits
+as a repeatable BullMQ job with per-user-per-month idempotency; error recovery (reaper on start and every 10 min: generations whose
+queue job is gone/failed are failed with refund; processing/export jobs stuck > 3 h failed); work-dir cleanup; worker heartbeats with
+CPU load, RAM, process RSS and `nvidia-smi` GPUs; `/api/system/metrics` (workers + queue counts), `/api/health/ready` (DB, Redis,
+storage); request IDs (`x-request-id`, included in 500 responses); single-attempt queues for non-idempotent jobs.
+UI: Team Workspace, Notifications, Profile, Settings (General preferences, Security: password + sessions, Plan & credits with
+ledger, System status with workers/queues, Account deletion). App-level 404.
+**Security recap:** bcrypt(12) + JWT sessions with revocation; RLS on every user table (tested at SQL level); server-side ownership
+checks; zod validation on every endpoint; rate limits (global + stricter auth/upload/generation); helmet headers; magic-byte upload
+verification, size/megapixel/quota limits; HMAC-signed expiring file URLs (S3 presigned in production); secrets only in env;
+provider webhooks token-checked and treated as hints.
+**Tests:** `test/infra.test.ts` 4/4 (team plan gate, invite linking, RLS visibility for member vs outsider, member cannot delete;
+running balance; monthly credits once per month; checkout not configured; reaper fail + single refund; readiness + request id).
+Playwright: team, notifications, profile, settings tabs, export center, unknown route → 404; one React key warning fixed.

@@ -9,6 +9,13 @@ import { reconstructionRoutes } from './reconstruction.js';
 import { modelRoutes } from './models.js';
 import { processingRoutes } from './processing.js';
 import { exportRoutes } from './exports.js';
+import { teamRoutes } from './teams.js';
+import { billingRoutes } from './billing.js';
+import { requireAuth } from '../middleware/auth.js';
+import { systemMetrics } from '../services/maintenance.js';
+import { pool } from '../database/pool.js';
+import { redis } from '../jobs/queues.js';
+import { storage } from '../storage/index.js';
 
 export async function registerExtraRoutes(api: FastifyInstance) {
   api.get('/plans', async () => ({
@@ -24,4 +31,16 @@ export async function registerExtraRoutes(api: FastifyInstance) {
   await api.register(modelRoutes);
   await api.register(processingRoutes);
   await api.register(exportRoutes);
+  await api.register(teamRoutes);
+  await api.register(billingRoutes);
+  api.get('/system/metrics', { preHandler: requireAuth }, async () => systemMetrics());
+  /** Readiness: database, Redis and storage reachable. */
+  api.get('/health/ready', async (_req, reply) => {
+    const checks: Record<string, string> = {};
+    await pool.query('select 1').then(() => { checks.database = 'ok'; }).catch((e) => { checks.database = String(e.message); });
+    await redis().ping().then(() => { checks.redis = 'ok'; }).catch((e) => { checks.redis = String(e.message); });
+    await storage.size('health-check-nonexistent').then(() => { checks.storage = 'ok'; }).catch((e) => { checks.storage = String(e.message); });
+    const ok = Object.values(checks).every((v) => v === 'ok');
+    reply.code(ok ? 200 : 503); return { ok, checks };
+  });
 }
