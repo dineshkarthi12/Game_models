@@ -9,7 +9,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 2 | Landing page & authentication | ✅ | Local JWT auth verified; Supabase mode implemented, CONFIGURATION REQUIRED |
 | 3 | Dashboard & projects | ✅ | Projects CRUD, library, history, folders/tags, RLS verified |
 | 4 | Multi-view upload | ✅ | Upload studio, quality metrics, coverage, ORB/RANSAC overlap |
-| 5 | AI provider integration | ⬜ | |
+| 5 | AI provider integration | ⚠️ | Pipeline verified (BullMQ, demo, mock contracts). Real Meshy/Tripo: CONFIGURATION REQUIRED |
 | 6 | Photogrammetry | ⬜ | |
 | 7 | 3D workspace | ⬜ | |
 | 8 | Accuracy validation & refinement | ⬜ | |
@@ -83,3 +83,26 @@ signed URL returns original bytes, tampered signature 403, coverage ratio, overl
 image flagged, re-angle, reorder, replace, delete, storage accounting, cross-user isolation). Playwright: uploads through the
 real file input, re-assigns angles, uploads into the Top slot, runs the overlap check; no console errors.
 **Known issues:** Fastify default `maxParamLength` (100) broke signed URLs — fixed (2048).
+
+## Milestone 5 — AI provider integration ⚠️ CONFIGURATION REQUIRED
+**Implemented:** provider adapter interface; Meshy (single + multi-image ≤4, rigging, cancel), Tripo (upload tokens,
+image_to_model, multiview_to_model with fixed Front/Left/Back/Right order, animate_rig), Demo (Blender procedural, labelled);
+capability-driven validation (texture resolutions, PBR, topology, symmetry, texture prompt, rigging only for characters,
+polycount range); BullMQ queues (`ai-generation`, `photogrammetry`, `model-processing`, `export`) and worker process;
+resumable polling (no duplicate provider tasks on retry), timeouts, transient-error tolerance; cancellation (DB flag →
+provider cancel); GLB download + magic check; model + version creation; analysis job (trimesh statistics, mesh integrity,
+texture inventory, Blender thumbnail); atomic credit charge with generation row; exactly-once refunds; notifications;
+webhook endpoint (hint-only, secret-protected); `/api/providers`, `/api/system/status`, `/api/generations/preview` (dry run:
+images actually sent, cost, blocking issues). UI: Configure step (mode, provider cards with configuration status, options shown only
+when supported, plan-locked qualities, images-that-will-be-sent preview, cost/balance), AI Processing page (observed stages only,
+provider-reported progress with source label, event log, elapsed time without ETA, cancel, retry).
+**Tests:** backend 18/18; `test/generations.test.ts` (6) runs real BullMQ workers on Redis: demo generation → stored, analysed,
+thumbnail; Meshy contract (≤4 images, data URIs, PBR flag, polling, GLB download, 15 credits charged); Tripo multiview order +
+failure → refunded exactly once (duplicate failure path does not double-refund); cancel → provider DELETE + refund;
+plan/capability/credit/configuration checks (403/400/402/503) and no orphan generation on 402.
+Playwright: configure → generate (demo) → job page → succeeded; one 400 (empty project id query) found and fixed;
+stage display corrected to show unobserved stages as "not reported" instead of completed.
+**Acceptance:** "At least one configured provider successfully generates and retrieves a genuine model" — **NOT MET in this
+environment**: no Meshy/Tripo API keys, and both API hosts are blocked by the sandbox network policy. Action: set
+`MESHY_API_KEY` and/or `TRIPO_API_KEY`, allow `api.meshy.ai` / `api.tripo3d.ai`, re-verify field names (docs/AI_PROVIDERS.md),
+run one generation per provider.

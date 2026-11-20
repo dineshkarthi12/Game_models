@@ -4,6 +4,7 @@ import { projectRoutes } from './projects.js';
 import { libraryRoutes } from './library.js';
 import { fileRoutes } from './files.js';
 import { uploadRoutes } from './uploads.js';
+import { generationRoutes } from './generations.js';
 
 export async function registerExtraRoutes(api: FastifyInstance) {
   api.get('/plans', async () => ({
@@ -14,4 +15,5 @@ export async function registerExtraRoutes(api: FastifyInstance) {
   await api.register(projectRoutes);
   await api.register(libraryRoutes);
   await api.register(uploadRoutes);
+  await api.register(generationRoutes);
 }

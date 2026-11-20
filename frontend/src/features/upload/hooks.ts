@@ -8,10 +8,10 @@ export const MAX_UPLOAD_MB = 40;
 export const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function useImages(projectId: string) {
-  return useQuery({ queryKey: ['images', projectId], queryFn: () => http.get<{ items: ProjectImage[] }>(`/projects/${projectId}/images`) });
+  return useQuery({ queryKey: ['images', projectId], queryFn: () => http.get<{ items: ProjectImage[] }>(`/projects/${projectId}/images`), enabled: !!projectId });
 }
 export function useAnalysis(projectId: string) {
-  return useQuery({ queryKey: ['analysis', projectId], queryFn: () => http.get<DatasetAnalysis>(`/projects/${projectId}/analysis`) });
+  return useQuery({ queryKey: ['analysis', projectId], queryFn: () => http.get<DatasetAnalysis>(`/projects/${projectId}/analysis`), enabled: !!projectId });
 }
 
 export interface QueueItem { key: string; name: string; size: number; status: 'uploading' | 'done' | 'rejected'; reason?: string }

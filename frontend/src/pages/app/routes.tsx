@@ -8,6 +8,7 @@ const LibraryPage = lazy(() => import('./LibraryPage'));
 const HistoryPage = lazy(() => import('./HistoryPage'));
 const ProjectDetailPage = lazy(() => import('./ProjectDetailPage'));
 const ProjectStudioPage = lazy(() => import('./ProjectStudioPage'));
+const JobPage = lazy(() => import('./JobPage'));
 
 export const appRoutes = (
   <>
@@ -17,6 +18,7 @@ export const appRoutes = (
     <Route path="projects/:id" element={<ProjectDetailPage />} />
     <Route path="projects/:id/studio" element={<ProjectStudioPage />} />
     <Route path="library" element={<LibraryPage />} />
+    <Route path="jobs/:id" element={<JobPage />} />
     <Route path="history" element={<HistoryPage />} />
   </>
 );
