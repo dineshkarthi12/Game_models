@@ -7,7 +7,7 @@ Status legend: ⬜ Not started · 🟨 In progress · ✅ Complete (verified) ·
 | 0 | Repository audit & planning | ✅ | Plan, decisions, architecture docs written |
 | 1 | Brand & design system | ✅ | Tokens, logo, primitives, layouts, style guide at /design-system |
 | 2 | Landing page & authentication | ✅ | Local JWT auth verified; Supabase mode implemented, CONFIGURATION REQUIRED |
-| 3 | Dashboard & projects | ⬜ | |
+| 3 | Dashboard & projects | ✅ | Projects CRUD, library, history, folders/tags, RLS verified |
 | 4 | Multi-view upload | ⬜ | |
 | 5 | AI provider integration | ⬜ | |
 | 6 | Photogrammetry | ⬜ | |
@@ -49,3 +49,17 @@ API requests run as `vistora_app` with RLS enforced.
 UI registration → dashboard, no console errors; 375px mobile: no horizontal overflow on /, /docs, /pricing, /login, /register.
 **Known issues / external:** Supabase Auth mode untested against a live project (no credentials) — CONFIGURATION REQUIRED.
 Password-reset email uses a log transport until an email provider is configured.
+
+## Milestone 3 — Dashboard & projects ✅
+**Implemented:** storage drivers (local disk + HMAC-signed expiring URLs with Range support; S3/R2/Supabase-S3 with presigned URLs);
+API: projects CRUD with search/category/status filters, sorting, pagination, project manifest export; dashboard summary;
+models library list (search, category, source, favorite, folder, tag, project, date range, sort, pagination), rename, favorite,
+tags, move to folder, duplicate (copies files), download (signed), delete (removes files); folders CRUD; tag cloud;
+generation history with filters; storage usage recomputed from authoritative tables.
+UI: Dashboard (5 live metrics, quick actions, recent projects table/grid with search/type/status filters, recent generations),
+My Projects, Create 3D (mode + new/existing project), Asset Library (grid/list, folders, favorites, tags, filters, preview
+dialog, full action menu), Generation History.
+**Tests:** backend 10/10 (`test/projects.test.ts`: CRUD, search/filter/sort/pagination, validation, API + **database-level RLS
+isolation**, app role cannot write the credit ledger, dashboard, folders). Playwright: /app, /app/projects, /app/library,
+/app/history, /app/create render with live data, no overflow; one DOM nesting warning found and fixed.
+**Known issues:** project detail page is delivered with Milestone 4 (depends on images API).

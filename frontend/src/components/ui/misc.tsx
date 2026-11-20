@@ -85,7 +85,7 @@ export function StatCard({ icon, label, value, hint, className }: { icon: ReactN
       <div className="min-w-0">
         <p className="text-xs font-medium text-ink-muted">{label}</p>
         <p className="mt-0.5 text-xl font-bold tabular-nums text-ink">{value}</p>
-        {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
+        {hint && <div className="mt-0.5 text-xs text-ink-muted">{hint}</div>}
       </div>
     </div>
   );
